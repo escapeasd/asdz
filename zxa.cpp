@@ -1,148 +1,226 @@
-﻿#include <iostream>
+#include <iostream>
 
 #include <fstream>
 
 #include <ctime>
 
+#include <cstdlib>
+
 using namespace std;
 
-void readWordsFromFile(const char* filename, char words[][3], int& wordCount)
-{
+const int MAX_WORDS = 10;
 
-    ifstream file(filename);
+const int MAX_ATTEMPTS = 6;
+
+const int MAX_WORD_LENGTH = 20;
+
+void loadWords(char words[][MAX_WORD_LENGTH + 1], int& numWords)
+{
+    ifstream file("тут либо путь/либо просто название самого текстового файла, когда оба файла находятся в одной и той же директории"); //либо добавить текстовый файл в одну директорию вместе с кодом, либо же указать ПОЛНЫЙ путь к файлу через дабл-флеши
 
     if (!file)
     {
+        cout << "Error opening file." << endl;
 
-        cout << "Ошибка при открытии файла!" << endl;
-
-        exit(1);
+        return;
     }
 
-    wordCount = 0;
+    char encryptedWord[MAX_WORD_LENGTH + 1];
 
-    while (file >> words[wordCount])
+    int i = 0;
+
+    while (file >> encryptedWord)
     {
-        wordCount++;
+        for (int j = 0; encryptedWord[j] != '\0'; j++)
+        {
+            words[i][j] = encryptedWord[j] - 1;
+        }
+
+        words[i][MAX_WORD_LENGTH] = '\0';
+
+        i++;
+
     }
+
+    numWords = i;
 
     file.close();
 }
 
-const char* getRandomWord(const char words[][3], int wordCount)
+int getRandomIndex(int max)
 {
-    int index = rand() % wordCount;
-
-    return words[index];
+    return rand() % max;
 }
 
-bool isLetterInWord(const char* word, char letter)
+void initializeGame(char word[], char guessedLetters[])
 {
-    for (int i = 0; word[i] != '\0'; i++) 
-    {
-        if (word[i] == letter) 
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-void displayGameStatus(const char* word, const char* guessedLetters, int attempts) 
-{
-    cout << "Искомое слово: ";
-
-    for (int i = 0; word[i] != '\0'; i++)
-    {
-        if (isLetterInWord(guessedLetters, word[i]))
-        {
-            cout << word[i] << " ";
-        }
-        else 
-        {
-            cout << "_ ";
-        }
-    }
-    cout << endl;
-
-    cout << "Попыток осталось: " << attempts << endl;
-}
-
-int main() 
-{
-    setlocale(LC_ALL, "RUS");
-
-    srand(time(0));
-
-    const char* filename = "C:\\Users\\exxid\\Desktop\\slova.txt";
-
-    char words[3][3];
-
-    int wordCount;
-
-    readWordsFromFile(filename, words, wordCount);
-
-    const char* word = getRandomWord(words, wordCount);
-
     int wordLength = 0;
 
-    while (word[wordLength] != '\0') 
+    while (word[wordLength] != '\0')
     {
+        guessedLetters[wordLength] = '_';
+
         wordLength++;
     }
 
-    char guessedLetters[3];
+    guessedLetters[wordLength] = '\0';
+}
 
-    int guessedLetterCount = 0;
+bool isWordGuessed(char word[], char guessedLetters[])
+{
+    int i = 0;
 
-    int attempts = 6;
-
-    bool gameOver = false;
-
-    while (!gameOver) 
+    while (word[i] != '\0')
     {
-        displayGameStatus(word, guessedLetters, attempts);
-
-        char letter;
-
-        cout << "Введите букву: ";
-
-        cin >> letter;
-
-        guessedLetters[guessedLetterCount] = letter;
-
-        guessedLetterCount++;
-
-        if (!isLetterInWord(word, letter))
+        if (word[i] != guessedLetters[i])
         {
-            attempts--;
+            return false;
         }
 
-        bool allLettersGuessed = true;
-
-        for (int i = 0; word[i] != '\0'; i++)
-        {
-            if (!isLetterInWord(guessedLetters, word[i]))
-            {
-                allLettersGuessed = false;
-
-                break;
-            }
-        }
-
-        if (allLettersGuessed || attempts == 0) 
-        {
-            gameOver = true;
-        }
+        i++;
     }
 
-    displayGameStatus(word, guessedLetters, attempts);
+    return true;
+}
 
-    cout << "Игра окончена!" << endl;
+void printHangman(int attempts)
+{
+    cout << "  ____" << endl;
 
-    cout << "Искомое слово: " << word << endl;
+    cout << "  |  |" << endl;
 
-    cout << "Количество попыток: " << 6 - attempts << endl;
+    if (attempts >= 1)
+    {
+        cout << "  |  O" << endl;
+    }
+
+    if (attempts == 2)
+    {
+        cout << "  |  |" << endl;
+    }
+    else if (attempts == 3)
+    {
+        cout << "  | \\|" << endl;
+    }
+    else if (attempts >= 4)
+    {
+        cout << "  | \\|/" << endl;
+    }
+
+    if (attempts == 5)
+    {
+        cout << "  | /" << endl;
+    }
+    else if (attempts >= 6)
+    {
+        cout << "  | / \\" << endl;
+    }
+
+    cout << "  |" << endl;
+
+    cout << "__|__" << endl;
+
+    cout << endl;
+}
+
+void printGame(char guessedLetters[], int attempts)
+{
+    cout << "Угаданные слова: " << guessedLetters << endl;
+
+    printHangman(attempts);
+}
+
+char getPlayerGuess()
+{
+    char guess;
+
+    cout << "Попробуй угадать: ";
+
+    cin >> guess;
+
+    cout << endl;
+
+    return guess;
+}
+
+bool isGuessCorrect(char word[], char guessedLetters[], char guess)
+{
+    int i = 0;
+
+    bool correctGuess = false;
+
+    while (word[i] != '\0')
+    {
+        if (word[i] == guess)
+        {
+            guessedLetters[i] = guess;
+
+            correctGuess = true;
+        }
+
+        i++;
+    }
+
+    return correctGuess;
+}
+
+void playGame(char word[], char guessedLetters[], int& attempts)
+{
+    while (attempts < MAX_ATTEMPTS && !isWordGuessed(word, guessedLetters))
+    {
+        printGame(guessedLetters, attempts);
+
+        char guess = getPlayerGuess();
+
+        if (isGuessCorrect(word, guessedLetters, guess))
+        {
+            cout << "Ты угадал!" << endl;
+        }
+        else
+        {
+            cout << "Блин, не угадал! :(" << endl;
+
+            attempts++;
+        }
+
+        cout << endl;
+    }
+}
+
+void printStats(int attempts, char word[])
+{
+    cout << "Игра закончена!" << endl;
+
+    cout << "Попыток: " << attempts << endl;
+
+    cout << "Слово: " << word << endl;
+}
+
+int main()
+{
+    srand(time(0));
+
+    char words[MAX_WORDS][MAX_WORD_LENGTH + 1];
+
+    int numWords = 0;
+
+    loadWords(words, numWords);
+
+    int randomIndex = getRandomIndex(numWords);
+
+    char word[MAX_WORD_LENGTH + 1];
+
+    strcpy_s(word, words[randomIndex]);
+
+    char guessedLetters[MAX_WORD_LENGTH + 1];
+
+    initializeGame(word, guessedLetters);
+
+    int attempts = 0;
+
+    playGame(word, guessedLetters, attempts);
+
+    printStats(attempts, word);
 
     return 0;
 }
